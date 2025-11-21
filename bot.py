@@ -30,10 +30,15 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Selenium setup ---
     options = Options()
-    options.add_argument("--headless=new")  # headless mới
-    options.add_argument("--window-size=1920,1080") 
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.binary_location = "/usr/bin/chromium"
 
-    driver = webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(
+    executable_path="/usr/bin/chromedriver",
+    options=options
+)
 
     driver.get("https://nullzereptool.com/")
     await asyncio.sleep(2)

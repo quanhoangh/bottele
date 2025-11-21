@@ -45,12 +45,10 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     code = context.args[0]
     await update.message.reply_text(f"🔑 Đang login với code: {code} ...")
 
-    # Tạo driver
     driver = create_driver()
     driver.get("https://nullzereptool.com/")
     await asyncio.sleep(2)
 
-    # Nhập code
     try:
         input_box = driver.find_element(By.ID, "code")
         input_box.send_keys(code)
@@ -60,7 +58,6 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await asyncio.sleep(1)
 
-    # Click login
     try:
         button = driver.find_element(By.XPATH, "//button[contains(text(),'Get My Dragon City Information')]")
         button.click()
@@ -70,34 +67,57 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await asyncio.sleep(10)
 
-    # Ẩn modal nếu có
     try:
         close_btn = driver.find_element(By.ID, "newsModalClose")
-        close_btn.click()
+        driver.execute_script("arguments[0].click();", close_btn)
     except:
         pass
 
-    # Mở tab Resources
     try:
         res_btn = driver.find_element(By.CSS_SELECTOR, "button[data-tab='resources']")
-        res_btn.click()
+        driver.execute_script("arguments[0].click();", res_btn)
     except:
         pass
 
     await update.message.reply_text("✅ Login xong. Dùng /stats để tự động claim.")
 
 # ==========================
-# Auto claim loop
+# Auto claim loop (ĐÃ FIX)
 # ==========================
 async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global stop_flag, driver
 
     while not stop_flag:
         try:
-            button = driver.find_element(By.ID, "claim-gold-xp")
-            button.click()
+            # Luôn mở tab Resources
+            try:
+                res_btn = driver.find_element(By.CSS_SELECTOR, "button[data-tab='resources']")
+                driver.execute_script("arguments[0].click();", res_btn)
+            except:
+                pass
 
-            # Gửi tin nhắn qua context.bot (không dùng update.message)
+            await asyncio.sleep(1)
+
+            # Đóng modal nếu có
+            try:
+                close_btn = driver.find_element(By.ID, "newsModalClose")
+                driver.execute_script("arguments[0].click();", close_btn)
+            except:
+                pass
+
+            # Đợi nút claim hiển thị
+            button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "claim-gold-xp"))
+            )
+
+            # Scroll tới nút
+            driver.execute_script("arguments[0].scrollIntoView(true);", button)
+            await asyncio.sleep(0.3)
+
+            # Click bằng JavaScript (fix element not interactable)
+            driver.execute_script("arguments[0].click();", button)
+
+            # Gửi thông báo thành công
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="💰 Claim thành công!"
@@ -112,7 +132,7 @@ async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(5)
 
 # ==========================
-# /stats → bắt đầu auto claim
+# /stats bắt đầu claim
 # ==========================
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global task, stop_flag
@@ -126,20 +146,15 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await update.message.reply_text("▶️ Bắt đầu auto claim ...")
-    stop_flag = False
 
-    # Tạo task chạy nền đúng cách
+    stop_flag = False
     task = asyncio.create_task(auto_claim(update, context))
 
 # ==========================
-# /stop → dừng claim
+# /stop
 # ==========================
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global stop_flag, task
-
-    if task is None or task.done():
-        await update.message.reply_text("❗ Auto claim chưa chạy.")
-        return
 
     stop_flag = True
     task = None
@@ -147,7 +162,7 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🛑 Đã dừng auto claim.")
 
 # ==========================
-# /out → đóng Selenium
+# /out
 # ==========================
 async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global driver, stop_flag, task
@@ -160,10 +175,9 @@ async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
         driver = None
 
     await update.message.reply_text("🚪 Đã đóng trình duyệt.")
-    
 
 # ==========================
-# /check → refresh & lấy thông tin
+# /check — F5 + lấy info user
 # ==========================
 async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global driver
@@ -174,7 +188,6 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("🔄 Đang lấy thông tin user...")
 
-    # F5 trang
     driver.refresh()
     await asyncio.sleep(5)
 
@@ -183,12 +196,11 @@ async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = grid.find_elements(By.TAG_NAME, "div")
 
         data = {}
-
         for item in items:
             text = item.text.strip()
             if ":" in text:
-                key, value = text.split(":", 1)
-                data[key.strip()] = value.strip()
+                k, v = text.split(":", 1)
+                data[k.strip()] = v.strip()
 
         msg = (
             f"👤 **User Info:**\n"
@@ -219,6 +231,5 @@ app.add_handler(CommandHandler("stats", stats))
 app.add_handler(CommandHandler("stop", stop))
 app.add_handler(CommandHandler("out", out))
 app.add_handler(CommandHandler("check", check))
-
 
 app.run_polling()

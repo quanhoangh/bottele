@@ -1,13 +1,23 @@
 FROM python:3.10-slim
 
-# Cài các thư viện hệ thống cần thiết
+# Cài Chromium + ChromeDriver + các thư viện cần thiết
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
     unzip \
     chromium \
     chromium-driver \
-    fonts-liberation \
+    libglib2.0-0 \
+    libgl1 \
+    libglx0 \
+    libgl1-mesa-dri \
+    libnss3 \
+    libgconf-2-4 \
+    libfontconfig1 \
+    libxrender1 \
+    libxi6 \
+    libxext6 \
+    libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libatspi2.0-0 \
@@ -15,8 +25,6 @@ RUN apt-get update && apt-get install -y \
     libdrm2 \
     libgbm1 \
     libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
     libu2f-udev \
     libvulkan1 \
     libxcomposite1 \
@@ -24,15 +32,22 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon0 \
     libxrandr2 \
     libxshmfence1 \
+    fonts-liberation \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy code vào /app
+# Đặt thư mục làm việc
 WORKDIR /app
+
+# Copy mã nguồn vào container
 COPY . .
 
 # Cài Python packages
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Đặt biến môi trường cho Chrome (cực quan trọng)
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 # Chạy bot
 CMD ["python3", "bot.py"]

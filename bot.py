@@ -10,14 +10,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 # ==========================
-# Biến toàn cục
+# Global variables
 # ==========================
 driver = None
 task = None
 stop_flag = False
 
 # ==========================
-# Hàm tạo Chrome driver (Docker compatible)
+# Selenium driver (Docker)
 # ==========================
 def create_driver():
     options = Options()
@@ -30,11 +30,10 @@ def create_driver():
     options.binary_location = "/usr/bin/chromium"
 
     service = Service("/usr/bin/chromedriver")
-
     return webdriver.Chrome(service=service, options=options)
 
 # ==========================
-# /login CODE
+# /login
 # ==========================
 async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global driver
@@ -46,56 +45,74 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     code = context.args[0]
     await update.message.reply_text(f"🔑 Đang login với code: {code} ...")
 
-    # Tạo Selenium driver
+    # Tạo driver
     driver = create_driver()
     driver.get("https://nullzereptool.com/")
     await asyncio.sleep(2)
 
     # Nhập code
-    input_box = driver.find_element(By.ID, "code")
-    input_box.send_keys(code)
+    try:
+        input_box = driver.find_element(By.ID, "code")
+        input_box.send_keys(code)
+    except:
+        await update.message.reply_text("❌ Không tìm thấy ô nhập code.")
+        return
+
     await asyncio.sleep(1)
 
     # Click login
-    button = driver.find_element(By.XPATH, "//button[contains(text(),'Get My Dragon City Information')]")
-    button.click()
+    try:
+        button = driver.find_element(By.XPATH, "//button[contains(text(),'Get My Dragon City Information')]")
+        button.click()
+    except:
+        await update.message.reply_text("❌ Không thấy nút login.")
+        return
+
     await asyncio.sleep(10)
 
-    # Ẩn modal nếu xuất hiện
+    # Ẩn modal nếu có
     try:
         close_btn = driver.find_element(By.ID, "newsModalClose")
         close_btn.click()
-        await asyncio.sleep(1)
     except:
         pass
 
-    # Chuyển sang Resources
+    # Mở tab Resources
     try:
         res_btn = driver.find_element(By.CSS_SELECTOR, "button[data-tab='resources']")
         res_btn.click()
     except:
         pass
 
-    await update.message.reply_text("✅ Login xong. Sẵn sàng dùng /stats để claim.")
+    await update.message.reply_text("✅ Login xong. Dùng /stats để tự động claim.")
 
 # ==========================
-# Auto claim
+# Auto claim loop
 # ==========================
-async def auto_claim(update: Update):
+async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global stop_flag, driver
 
     while not stop_flag:
         try:
-            button_claim = driver.find_element(By.ID, "claim-gold-xp")
-            button_claim.click()
-            await update.message.reply_text("💰 Claim thành công!")
+            button = driver.find_element(By.ID, "claim-gold-xp")
+            button.click()
+
+            # Gửi tin nhắn qua context.bot (không dùng update.message)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="💰 Claim thành công!"
+            )
+
         except Exception as e:
-            await update.message.reply_text(f"❌ Lỗi claim: {e}")
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"⚠️ Lỗi claim: {e}"
+            )
 
         await asyncio.sleep(5)
 
 # ==========================
-# /stats → bắt đầu claim
+# /stats → bắt đầu auto claim
 # ==========================
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global task, stop_flag
@@ -105,12 +122,14 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if task is not None and not task.done():
-        await update.message.reply_text("⚠️ Bot đang chạy claim.")
+        await update.message.reply_text("⚠️ Auto claim đang chạy.")
         return
 
-    await update.message.reply_text("▶️ Bắt đầu auto claim Gold & XP ...")
+    await update.message.reply_text("▶️ Bắt đầu auto claim ...")
     stop_flag = False
-    task = asyncio.create_task(auto_claim(update))
+
+    # Tạo task chạy nền đúng cách
+    task = asyncio.create_task(auto_claim(update, context))
 
 # ==========================
 # /stop → dừng claim
@@ -119,12 +138,13 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global stop_flag, task
 
     if task is None or task.done():
-        await update.message.reply_text("❗ Bot chưa chạy claim.")
+        await update.message.reply_text("❗ Auto claim chưa chạy.")
         return
 
     stop_flag = True
     task = None
-    await update.message.reply_text("🛑 Auto claim đã dừng.")
+
+    await update.message.reply_text("🛑 Đã dừng auto claim.")
 
 # ==========================
 # /out → đóng Selenium
@@ -142,9 +162,9 @@ async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🚪 Đã đóng trình duyệt.")
 
 # ==========================
-# Chạy bot
+# Run bot
 # ==========================
-TOKEN = "8029102657:AAF536W2Fh0ihZdCIC92dDAAWHqpwqPrVXo"   # ⚠ Đổi token NGAY!
+TOKEN = "THAY_TOKEN_VÀO_ĐÂY"
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("login", login))

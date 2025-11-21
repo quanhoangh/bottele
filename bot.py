@@ -147,80 +147,6 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🛑 Đã dừng auto claim.")
 
 # ==========================
-async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Xử lý lệnh /check. Refresh trang và lấy thông tin user mới nhất."""
-    global driver
-
-    if driver is None:
-        await update.message.reply_text("❌ Chưa login. Dùng /login CODE trước.")
-        return
-
-    await update.message.reply_text("🔄 Đang làm mới trang và lấy thông tin user...")
-    
-    try:
-        # 1. Refresh the page
-        driver.refresh()
-        
-        # 2. Wait for a key element to be present after refresh
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, "claim-gold-xp"))
-        )
-        
-        # 3. Re-click the Resources tab to ensure stat elements are visible
-        try:
-            res_btn = driver.find_element(By.CSS_SELECTOR, "button[data-tab='resources']")
-            res_btn.click()
-            await asyncio.sleep(1) 
-        except:
-            # Bỏ qua nếu không click được, có thể tab đã được mở
-            pass 
-        
-        # Helper function để lấy text/value từ ID một cách an toàn
-        def get_stat(id_name):
-            try:
-                element = driver.find_element(By.ID, id_name)
-                # Lấy giá trị từ input/textarea
-                if element.tag_name in ['input', 'textarea']:
-                    return element.get_attribute('value') or "0"
-                # Lấy text
-                text_content = element.text.strip()
-                if not text_content and element.get_attribute('innerText'):
-                    return element.get_attribute('innerText').strip() or "0"
-                return text_content or "0"
-            except:
-                return "0"
-                
-        # Lấy thông tin
-        # user_id_input là ID phổ biến cho trường chứa ID người dùng sau khi login
-        user_id = get_stat("user_id_input") 
-        if user_id == "0":
-             user_id = "N/A (Chưa lấy được)"
-
-        gold = get_stat("gold")
-        food = get_stat("food")
-        gems = get_stat("gems")
-        level = get_stat("level")
-        exp = get_stat("exp")
-        
-        # 4. Format và gửi thông tin
-        
-        message = (
-            "📊 *THÔNG TIN TÀI KHOẢN* 📊\n\n"
-            f"👤 *User ID:* `{user_id}`\n"
-            f"🌟 *Level:* {level}\n"
-            f"✨ *EXP:* {exp}\n\n"
-            f"💰 *Tài Nguyên:*\n"
-            f"  - Vàng (Gold): {gold}\n"
-            f"  - Thức ăn (Food): {food}\n"
-            f"  - Đá quý (Gems): {gems}\n\n"
-            "✅ Dữ liệu đã được làm mới thành công."
-        )
-
-        await update.message.reply_text(message, parse_mode='Markdown')
-
-    except Exception as e:
-        await update.message.reply_text(f"❌ Lỗi khi làm mới/lấy dữ liệu: {e.__class__.__name__}. Vui lòng thử lại.")
-        print(f"Check error: {e}")
 # /out → đóng Selenium
 # ==========================
 async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -234,6 +160,53 @@ async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
         driver = None
 
     await update.message.reply_text("🚪 Đã đóng trình duyệt.")
+    
+
+# ==========================
+# /check → refresh & lấy thông tin
+# ==========================
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global driver
+
+    if driver is None:
+        await update.message.reply_text("❌ Chưa login.")
+        return
+
+    await update.message.reply_text("🔄 Đang lấy thông tin user...")
+
+    # F5 trang
+    driver.refresh()
+    await asyncio.sleep(5)
+
+    try:
+        grid = driver.find_element(By.CSS_SELECTOR, "div.grid.grid-cols-2")
+        items = grid.find_elements(By.TAG_NAME, "div")
+
+        data = {}
+
+        for item in items:
+            text = item.text.strip()
+            if ":" in text:
+                key, value = text.split(":", 1)
+                data[key.strip()] = value.strip()
+
+        msg = (
+            f"👤 **User Info:**\n"
+            f"• Name: {data.get('Name', '?')}\n"
+            f"• Gems: {data.get('Gems', '?')}\n"
+            f"• Level: {data.get('Level', '?')}\n"
+            f"• Gold: {data.get('Gold', '?')}\n"
+            f"• Food: {data.get('Food', '?')}\n"
+            f"• XP: {data.get('XP', '?')}\n"
+            f"• Status: {data.get('Account Status', '?')}\n"
+            f"• Reason: {data.get('Reason', '?')}\n"
+            f"• Premium: {data.get('Premium Expired At', '?')}\n"
+        )
+
+        await update.message.reply_text(msg, parse_mode="Markdown")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Lỗi đọc dữ liệu: {e}")
 
 # ==========================
 # Run bot
@@ -246,4 +219,6 @@ app.add_handler(CommandHandler("stats", stats))
 app.add_handler(CommandHandler("stop", stop))
 app.add_handler(CommandHandler("out", out))
 app.add_handler(CommandHandler("check", check))
+
+
 app.run_polling()

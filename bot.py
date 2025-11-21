@@ -35,10 +35,9 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     options.add_argument("--disable-dev-shm-usage")
     options.binary_location = "/usr/bin/chromium"
 
-    driver = webdriver.Chrome(
-    executable_path="/usr/bin/chromedriver",
-    options=options
-)
+    service = Service("/usr/bin/chromedriver")
+
+    driver = webdriver.Chrome(service=service, options=options)
 
     driver.get("https://nullzereptool.com/")
     await asyncio.sleep(2)

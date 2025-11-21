@@ -164,7 +164,7 @@ async def out(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ==========================
 # Run bot
 # ==========================
-TOKEN = "THAY_TOKEN_VÀO_ĐÂY"
+TOKEN = "8029102657:AAF536W2Fh0ihZdCIC92dDAAWHqpwqPrVXo"
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("login", login))

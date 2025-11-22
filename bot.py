@@ -128,6 +128,7 @@ async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=update.effective_chat.id,
                 text=f"⚠️ Lỗi claim: {e}"
             )
+            await asyncio.sleep(1)
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="⏳ Đang đợi 10 giây rồi tự chạy lại..."
@@ -240,3 +241,4 @@ app.add_handler(CommandHandler("out", out))
 app.add_handler(CommandHandler("check", check))
 
 app.run_polling()
+

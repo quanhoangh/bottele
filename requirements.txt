@@ -1,2 +1,3 @@
-python-telegram-bot==20.7
-selenium==4.20.0
+python-telegram-bot==20.0
+selenium
+webdriver-manager

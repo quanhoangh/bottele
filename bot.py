@@ -128,17 +128,13 @@ async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=update.effective_chat.id,
                 text=f"⚠️ Lỗi claim: {e}"
             )
-             # Nếu lỗi là Timed out → đợi 10s → tự chạy lại /start
-            if "Timed out" in str(e):
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text="⏳ Đang đợi 10 giây rồi tự chạy lại..."
-                )
-                await asyncio.sleep(10)
-
-                # Gọi lại lệnh /start
-                await stats(update, context)
-                return
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="⏳ Đang đợi 10 giây rồi tự chạy lại..."
+            )
+            await asyncio.sleep(10)
+            await stats(update, context)
+            
 
         await asyncio.sleep(5)
 

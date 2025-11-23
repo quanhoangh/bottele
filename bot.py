@@ -124,6 +124,8 @@ async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
         except Exception as e:
+            await asyncio.sleep(5)
+            await stats(update, context)
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=f"⚠️ Lỗi claim: {e}"
@@ -133,8 +135,7 @@ async def auto_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=update.effective_chat.id,
                 text="⏳ Đang đợi 10 giây rồi tự chạy lại..."
             )
-            await asyncio.sleep(10)
-            await stats(update, context)
+            
             
 
         await asyncio.sleep(5)
@@ -241,4 +242,5 @@ app.add_handler(CommandHandler("out", out))
 app.add_handler(CommandHandler("check", check))
 
 app.run_polling()
+
 
